@@ -8,6 +8,8 @@ from twisted.internet.protocol import ServerFactory
 from twisted.protocols.basic import LineReceiver
 from twisted.python import log
 from twisted.internet import reactor
+import json
+from handler import ServerHandler
 
 
 class CmdProtocol(LineReceiver):
@@ -16,8 +18,11 @@ class CmdProtocol(LineReceiver):
 
     def __init__(self):
         self.client_ip = None
+        self.handler = None
 
     def connectionMade(self):
+        self.handler = ServerHandler()
+
         log.msg(self.transport)
         self.client_ip = self.transport.getPeer().host
         log.msg("Client connection from %s" % self.client_ip)
@@ -37,7 +42,11 @@ class CmdProtocol(LineReceiver):
             log.msg("Current client number is %d" % len(self.factory.clients))
 
     def lineReceived(self, line):
-        log.msg('Receive cmd from %s : %s' % (self.client_ip, line))
+        msg = json.loads(line)
+        method = msg["method"]
+        params = msg["params"]
+
+        self.handler.run(method, params)
 
 
 class ServerPool(ServerFactory):
